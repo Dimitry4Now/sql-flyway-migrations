@@ -25,6 +25,13 @@ jobs:
             echo "Checking commit: $commit"
             msg=$(git log -1 --pretty=format:"%B" $commit)
             
+            # Skip merge commits
+            if echo "$msg" | grep -q "^Merge"; then
+              echo "⏭️  Skipping merge commit"
+              echo "---"
+              continue
+            fi
+            
             echo "=== COMMIT MESSAGE ==="
             echo "$msg"
             echo "===================="
