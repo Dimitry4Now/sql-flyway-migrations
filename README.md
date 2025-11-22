@@ -68,6 +68,106 @@ This project uses a custom schema named **`dime`** instead of the default `publi
 - Java 25 (or compatible JDK)
 - Kotlin 2.2.21
 
+## Development Workflow
+
+### Initial Setup
+
+After cloning the repository, run the setup script:
+```bash
+./scripts/setup-git-hooks.sh
+```
+
+This configures your local Git to use the project's commit message template.
+
+### Commit Message Format
+
+All commits **must** follow this format to pass CI validation:
+```
+Subject line (max 50 characters)
+
+Files changed:
+* src/main/kotlin/controller/PublicController.kt
+* src/main/resources/db/migration/versioned/V5__add_tags.sql
+
+Purpose of the change: (minimum 50 characters)
+Added tags functionality to allow categorization of posts. This was requested
+to improve content organization and user experience.
+
+How does it affect the application: (minimum 50 characters)
+Introduces a new tags table and migration. The PublicController can now
+display tag data. This is a non-breaking change and existing data is preserved.
+```
+
+**Required sections:**
+1. **Subject line** - Brief description (max 50 characters)
+2. **Files changed** - List of modified files
+3. **Purpose of the change** - Why the change was made (min 50 characters)
+4. **How does it affect the application** - Impact description (min 50 characters)
+
+### Creating Pull Requests
+
+1. **Create feature branch from develop:**
+```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/your-feature-name
+```
+
+2. **Make changes and commit with proper format:**
+```bash
+   git add .
+   git commit  # Opens editor with template
+```
+
+3. **Push and create PR:**
+```bash
+   git push -u origin feature/your-feature-name
+```
+
+4. **On GitHub:**
+    - Open Pull Request targeting `develop` branch
+    - Fill out the PR template
+    - Wait for commit message validation to pass
+    - Request review
+
+### Branch Strategy
+
+- **`main`** - Production-ready code (protected)
+- **`develop`** - Integration branch (protected, default)
+- **`feature/*`** - Feature branches (created from `develop`)
+
+All PRs must:
+- Target the `develop` branch
+- Pass commit message validation
+- Be approved by repository owner
+- Have all commits following the commit format
+---
+
+## Example Commit Message for the Above Changes
+
+When you run `git commit`, fill in the template like this:
+
+```
+Add commit message enforcement and PR template
+
+Files changed:
+* .github/workflows/commit-lint.yml
+* .github/PULL_REQUEST_TEMPLATE.md
+* .gitmessage
+* scripts/setup-git-hooks.sh
+* README.md
+
+Purpose of the change: (minimum 50 characters)
+Implemented commit message standardization to ensure all team members follow
+consistent commit conventions. This improves code history readability and
+makes it easier to understand the purpose and impact of changes.
+
+How does it affect the application: (minimum 50 characters)
+This does not affect the application runtime but establishes development
+workflow standards. GitHub Actions will now validate all PR commits and
+reject those not following the format. Team members must run the setup script.
+```
+
 ### Option 1: Database Only (Learning Mode) 🎓
 
 This mode starts only PostgreSQL, allowing you to run the Spring Boot app locally with full control over migrations.
@@ -281,7 +381,7 @@ jdbc:postgresql://localhost:5432/flyway_db?currentSchema=dime
 ```
 
 ## Common Gradle Tasks
-
+### Local Development while testing out the migrations
 | Task | Description |
 |------|-------------|
 | `./gradlew dbUp` | Start PostgreSQL only |
@@ -289,10 +389,20 @@ jdbc:postgresql://localhost:5432/flyway_db?currentSchema=dime
 | `./gradlew dbDestroy` | Stop and delete PostgreSQL data |
 | `./gradlew dbLogs` | Show PostgreSQL logs |
 | `./gradlew dbShell` | Open PostgreSQL shell |
+
+
+### Local sanity check
+| Task | Description |
+|------|-------------|
 | `./gradlew devUp` | Start full stack (DB + App) |
 | `./gradlew devDown` | Stop full stack |
 | `./gradlew devDestroy` | Stop and delete all data |
 | `./gradlew devLogs` | Show all service logs |
+
+
+### Built in Gradle tasks
+| Task | Description |
+|------|-------------|
 | `./gradlew bootRun` | Run app locally |
 | `./gradlew bootJar` | Build executable JAR |
 | `./gradlew build` | Build project |
@@ -520,3 +630,7 @@ FOREIGN KEY (user_id) REFERENCES dime.users(id)
 ## License
 
 This is a learning project. Feel free to use and modify as needed.
+
+< Test PR workflow -->
+
+< Clean test -->

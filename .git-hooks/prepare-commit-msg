@@ -1,0 +1,43 @@
+#!/bin/bash
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Only run if this is a new commit (not amend, merge, etc.)
+if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "template" ]; then
+    # Get list of staged files
+    staged_files=$(git diff --cached --name-only)
+    
+    # If there are staged files, populate the template
+    if [ -n "$staged_files" ]; then
+        # Read the existing template
+        existing_content=$(cat "$COMMIT_MSG_FILE")
+        
+        # Create new content
+        {
+            echo "# Subject line (50 characters max)"
+            echo "# |<----  Using a Maximum Of 50 Characters  ---->|"
+            echo ""
+            echo ""
+            echo "Files changed:"
+            # Add each staged file
+            echo "$staged_files" | while IFS= read -r file; do
+                echo "* $file"
+            done
+            echo ""
+            echo "Purpose of the change: (minimum 50 characters)"
+            echo ""
+            echo ""
+            echo ""
+            echo "How does it affect the application: (minimum 50 characters)"
+            echo ""
+            echo ""
+            echo ""
+            echo "Additional notes:"
+            echo ""
+            
+            # Append Git's default comments (the part starting with "# Please enter")
+            echo "$existing_content" | sed -n '/# Please enter/,$p'
+        } > "$COMMIT_MSG_FILE"
+    fi
+fi

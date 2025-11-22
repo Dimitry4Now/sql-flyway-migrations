@@ -1,0 +1,109 @@
+name: Commit Message Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  commit-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          #!/bin/bash
+          
+          commits=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%H")
+          
+          failed=false
+          
+          for commit in $commits; do
+            echo "Checking commit: $commit"
+            msg=$(git log -1 --pretty=format:"%B" $commit)
+            
+            # Skip merge commits
+            if echo "$msg" | grep -q "^Merge"; then
+              echo "⏭️  Skipping merge commit"
+              echo "---"
+              continue
+            fi
+            
+            echo "=== COMMIT MESSAGE ==="
+            echo "$msg"
+            echo "===================="
+            echo ""
+            
+            # Check for required sections
+            if ! echo "$msg" | grep -iq "Files changed:"; then
+              echo "❌ Missing 'Files changed:' section"
+              failed=true
+            else
+              echo "✅ Found 'Files changed:' section"
+            fi
+            
+            if ! echo "$msg" | grep -iq "Purpose of the change"; then
+              echo "❌ Missing 'Purpose of the change' section"
+              failed=true
+            else
+              echo "✅ Found 'Purpose of the change' section"
+            fi
+            
+            if ! echo "$msg" | grep -iq "How does it affect the application"; then
+              echo "❌ Missing 'How does it affect the application' section"
+              failed=true
+            else
+              echo "✅ Found 'How does it affect the application' section"
+            fi
+            
+            # Extract purpose
+            purpose=$(echo "$msg" | sed -n '/Purpose of the change/,/How does it affect/p' | \
+                      grep -vi "Purpose of the change" | \
+                      grep -vi "How does it affect" | \
+                      grep -v "minimum 50 characters" | \
+                      grep -v "^#" | \
+                      tr -d '\n' | \
+                      sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            purpose_len=${#purpose}
+            
+            echo "Purpose: '$purpose' ($purpose_len chars)"
+            
+            if [ $purpose_len -lt 50 ]; then
+              echo "❌ 'Purpose' too short ($purpose_len chars, need 50+)"
+              failed=true
+            else
+              echo "✅ Purpose length OK"
+            fi
+            
+            # Extract impact
+            impact=$(echo "$msg" | sed -n '/How does it affect the application/,$p' | \
+                     grep -vi "How does it affect the application" | \
+                     grep -v "minimum 50 characters" | \
+                     grep -vi "Additional notes" | \
+                     grep -v "^#" | \
+                     tr -d '\n' | \
+                     sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            impact_len=${#impact}
+            
+            echo "Impact: '$impact' ($impact_len chars)"
+            
+            if [ $impact_len -lt 50 ]; then
+              echo "❌ 'Impact' too short ($impact_len chars, need 50+)"
+              failed=true
+            else
+              echo "✅ Impact length OK"
+            fi
+            
+            echo "---"
+          done
+          
+          if [ "$failed" = true ]; then
+            echo ""
+            echo "❌ Validation failed"
+            exit 1
+          fi
+          
+          echo "✅ All commits validated successfully!"
