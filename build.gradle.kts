@@ -56,24 +56,58 @@ tasks.register<Exec>("dbUp") {
     group = "database"
     description = "Start PostgreSQL database only (persistent mode for migration learning)"
     commandLine("docker-compose", "-f", "docker/docker-compose.db.yml", "up", "-d")
+
+    doLast {
+        println("\n✅ PostgreSQL started successfully!")
+        println("📦 Database: localhost:5432")
+        println("   DB: flyway_db")
+        println("   User: flyway_user")
+        println("   Pass: flyway_pass")
+        println("\nUseful commands:")
+        println("  ./gradlew dbShell  - Open psql shell")
+        println("  ./gradlew dbLogs   - View logs")
+        println("  ./gradlew dbDown   - Stop database")
+
+        Thread.sleep(1000)
+
+        // Show container status using ProcessBuilder
+        val process = ProcessBuilder("docker-compose", "-f", "docker/docker-compose.db.yml", "ps")
+            .inheritIO()
+            .start()
+        process.waitFor()
+    }
 }
 
 tasks.register<Exec>("dbDown") {
     group = "database"
     description = "Stop PostgreSQL database"
     commandLine("docker-compose", "-f", "docker/docker-compose.db.yml", "down")
+
+    doLast {
+        println("✅ PostgreSQL stopped")
+    }
 }
 
 tasks.register<Exec>("dbDestroy") {
     group = "database"
     description = "Stop PostgreSQL and remove volumes (clean slate)"
     commandLine("docker-compose", "-f", "docker/docker-compose.db.yml", "down", "-v")
+
+    doLast {
+        println("✅ PostgreSQL stopped and volumes removed")
+    }
 }
 
 tasks.register<Exec>("dbLogs") {
     group = "database"
     description = "Show PostgreSQL logs"
     commandLine("docker-compose", "-f", "docker/docker-compose.db.yml", "logs", "-f")
+}
+
+tasks.register<Exec>("dbStatus") {
+    group = "database"
+    description = "Show PostgreSQL status"
+    commandLine("docker-compose", "-f", "docker/docker-compose.db.yml", "ps")
 }
 
 tasks.register<Exec>("dbShell") {
@@ -87,25 +121,63 @@ tasks.register<Exec>("devUp") {
     group = "development"
     description = "Start full stack (PostgreSQL + Spring Boot app with fresh migrations)"
     dependsOn("bootJar")
-    commandLine("docker-compose", "-f", "docker/docker-compose.dev.yml", "up", "--build")
+    commandLine("docker-compose", "-f", "docker/docker-compose.dev.yml", "up", "--build", "-d")
+
+    doLast {
+        println("\n✅ Full stack started successfully!")
+        println("📦 PostgreSQL: localhost:5433")
+        println("🚀 Spring Boot: http://localhost:8080")
+        println("\nUseful commands:")
+        println("  ./gradlew devLogs    - View logs")
+        println("  ./gradlew devDown    - Stop services")
+        println("  ./gradlew devDestroy - Stop and remove volumes")
+
+        Thread.sleep(2000)
+
+        // Show container status
+        val process = ProcessBuilder("docker-compose", "-f", "docker/docker-compose.dev.yml", "ps")
+            .inheritIO()
+            .start()
+        process.waitFor()
+    }
 }
 
 tasks.register<Exec>("devDown") {
     group = "development"
     description = "Stop full development stack"
     commandLine("docker-compose", "-f", "docker/docker-compose.dev.yml", "down")
+
+    doLast {
+        println("✅ Full stack stopped")
+    }
 }
 
 tasks.register<Exec>("devDestroy") {
     group = "development"
     description = "Stop full stack and remove volumes (complete reset)"
     commandLine("docker-compose", "-f", "docker/docker-compose.dev.yml", "down", "-v")
+
+    doLast {
+        println("✅ Full stack stopped and volumes removed")
+    }
 }
 
 tasks.register<Exec>("devLogs") {
     group = "development"
     description = "Show logs from all services"
     commandLine("docker-compose", "-f", "docker/docker-compose.dev.yml", "logs", "-f")
+}
+
+tasks.register<Exec>("devStatus") {
+    group = "development"
+    description = "Show status of all services"
+    commandLine("docker-compose", "-f", "docker/docker-compose.dev.yml", "ps")
+}
+
+tasks.register<Exec>("devRestart") {
+    group = "development"
+    description = "Restart all services"
+    dependsOn("devDown", "devUp")
 }
 
 // Migration helper tasks
