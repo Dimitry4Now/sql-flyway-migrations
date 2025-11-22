@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS dime.user_stats;
+
 CREATE OR REPLACE VIEW dime.user_stats AS
 SELECT
     u.id,
