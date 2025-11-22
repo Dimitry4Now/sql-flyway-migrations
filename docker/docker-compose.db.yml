@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: flyway-postgres-dev
+    environment:
+      POSTGRES_DB: flyway_db
+      POSTGRES_USER: flyway_user
+      POSTGRES_PASSWORD: flyway_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flyway_user -d flyway_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    name: flyway_postgres_data

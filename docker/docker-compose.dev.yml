@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: flyway-postgres-fullstack
+    environment:
+      POSTGRES_DB: flyway_db
+      POSTGRES_USER: flyway_user
+      POSTGRES_PASSWORD: flyway_pass
+    ports:
+      - "5433:5432"  # Different port to avoid conflict with standalone DB
+    volumes:
+      - postgres_fullstack_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flyway_user -d flyway_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flyway-network
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: flyway-app
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flyway_db
+      SPRING_DATASOURCE_USERNAME: flyway_user
+      SPRING_DATASOURCE_PASSWORD: flyway_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_FLYWAY_ENABLED: true
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - flyway-network
+
+volumes:
+  postgres_fullstack_data:
+    name: flyway_postgres_fullstack_data
+
+networks:
+  flyway-network:
+    name: flyway-network
