@@ -17,7 +17,6 @@ jobs:
         run: |
           #!/bin/bash
           
-          # Get all commits in this PR
           commits=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%H")
           
           failed=false
@@ -26,49 +25,85 @@ jobs:
             echo "Checking commit: $commit"
             msg=$(git log -1 --pretty=format:"%B" $commit)
             
+            # Skip merge commits
+            if echo "$msg" | grep -q "^Merge"; then
+              echo "⏭️  Skipping merge commit"
+              echo "---"
+              continue
+            fi
+            
+            echo "=== COMMIT MESSAGE ==="
+            echo "$msg"
+            echo "===================="
+            echo ""
+            
             # Check for required sections
-            if ! echo "$msg" | grep -q "Files changed:"; then
-              echo "❌ Commit $commit missing 'Files changed:' section"
+            if ! echo "$msg" | grep -iq "Files changed:"; then
+              echo "❌ Missing 'Files changed:' section"
               failed=true
+            else
+              echo "✅ Found 'Files changed:' section"
             fi
             
-            if ! echo "$msg" | grep -q "Purpose of the change:"; then
-              echo "❌ Commit $commit missing 'Purpose of the change:' section"
+            if ! echo "$msg" | grep -iq "Purpose of the change"; then
+              echo "❌ Missing 'Purpose of the change' section"
               failed=true
+            else
+              echo "✅ Found 'Purpose of the change' section"
             fi
             
-            if ! echo "$msg" | grep -q "How does it affect the application:"; then
-              echo "❌ Commit $commit missing 'How does it affect the application:' section"
+            if ! echo "$msg" | grep -iq "How does it affect the application"; then
+              echo "❌ Missing 'How does it affect the application' section"
               failed=true
+            else
+              echo "✅ Found 'How does it affect the application' section"
             fi
             
-            # Validate minimum length for Purpose
-            purpose=$(echo "$msg" | sed -n '/Purpose of the change:/,/How does it affect/p' | grep -v "Purpose of the change:" | grep -v "How does it affect" | tr -d '\n' | xargs)
+            # Extract purpose
+            purpose=$(echo "$msg" | sed -n '/Purpose of the change/,/How does it affect/p' | \
+                      grep -vi "Purpose of the change" | \
+                      grep -vi "How does it affect" | \
+                      grep -v "minimum 50 characters" | \
+                      grep -v "^#" | \
+                      tr -d '\n' | \
+                      sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             purpose_len=${#purpose}
+            
+            echo "Purpose: '$purpose' ($purpose_len chars)"
+            
             if [ $purpose_len -lt 50 ]; then
-              echo "❌ Commit $commit: 'Purpose' too short ($purpose_len chars, need 50+)"
+              echo "❌ 'Purpose' too short ($purpose_len chars, need 50+)"
               failed=true
+            else
+              echo "✅ Purpose length OK"
             fi
             
-            # Validate minimum length for Impact
-            impact=$(echo "$msg" | sed -n '/How does it affect the application:/,/$/p' | grep -v "How does it affect the application:" | tr -d '\n' | xargs)
+            # Extract impact
+            impact=$(echo "$msg" | sed -n '/How does it affect the application/,$p' | \
+                     grep -vi "How does it affect the application" | \
+                     grep -v "minimum 50 characters" | \
+                     grep -vi "Additional notes" | \
+                     grep -v "^#" | \
+                     tr -d '\n' | \
+                     sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             impact_len=${#impact}
+            
+            echo "Impact: '$impact' ($impact_len chars)"
+            
             if [ $impact_len -lt 50 ]; then
-              echo "❌ Commit $commit: 'Application impact' too short ($impact_len chars, need 50+)"
+              echo "❌ 'Impact' too short ($impact_len chars, need 50+)"
               failed=true
+            else
+              echo "✅ Impact length OK"
             fi
             
-            if [ "$failed" = false ]; then
-              echo "✅ Commit $commit passes validation"
-            fi
             echo "---"
           done
           
           if [ "$failed" = true ]; then
             echo ""
-            echo "❌ One or more commits have invalid commit messages"
-            echo "Please use the commit template format"
+            echo "❌ Validation failed"
             exit 1
           fi
           
-          echo "✅ All commits pass validation"
+          echo "✅ All commits validated successfully!"
