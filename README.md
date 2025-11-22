@@ -141,13 +141,12 @@ All PRs must:
 - Pass commit message validation
 - Be approved by repository owner
 - Have all commits following the commit format
-```
-
 ---
 
 ## Example Commit Message for the Above Changes
 
 When you run `git commit`, fill in the template like this:
+
 ```
 Add commit message enforcement and PR template
 
@@ -167,6 +166,7 @@ How does it affect the application: (minimum 50 characters)
 This does not affect the application runtime but establishes development
 workflow standards. GitHub Actions will now validate all PR commits and
 reject those not following the format. Team members must run the setup script.
+```
 
 ### Option 1: Database Only (Learning Mode) 🎓
 

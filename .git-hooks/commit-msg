@@ -1,0 +1,52 @@
+#!/bin/bash
+
+commit_msg_file=$1
+commit_msg=$(cat "$commit_msg_file")
+
+# Remove comment lines for validation
+commit_msg_clean=$(echo "$commit_msg" | grep -v '^#')
+
+# Check for required sections
+if ! echo "$commit_msg_clean" | grep -q "Files changed:"; then
+    echo "❌ Commit message must include 'Files changed:' section"
+    exit 1
+fi
+
+if ! echo "$commit_msg_clean" | grep -q "Purpose of the change:"; then
+    echo "❌ Commit message must include 'Purpose of the change:' section"
+    exit 1
+fi
+
+if ! echo "$commit_msg_clean" | grep -q "How does it affect the application:"; then
+    echo "❌ Commit message must include 'How does it affect the application:' section"
+    exit 1
+fi
+
+# Extract and validate Purpose section (minimum 50 chars)
+purpose=$(echo "$commit_msg_clean" | sed -n '/Purpose of the change:/,/How does it affect/p' | grep -v "Purpose of the change:" | grep -v "How does it affect" | tr -d '\n' | sed 's/(minimum 50 characters)//g' | xargs)
+purpose_len=${#purpose}
+if [ $purpose_len -lt 50 ]; then
+    echo "❌ 'Purpose of the change' must be at least 50 characters"
+    echo "   Current length: $purpose_len characters"
+    echo "   You need: $((50 - purpose_len)) more characters"
+    exit 1
+fi
+
+# Extract and validate Application impact section (minimum 50 chars)
+impact=$(echo "$commit_msg_clean" | sed -n '/How does it affect the application:/,/Additional notes:/p' | grep -v "How does it affect the application:" | grep -v "Additional notes:" | tr -d '\n' | sed 's/(minimum 50 characters)//g' | xargs)
+if [ -z "$impact" ]; then
+    # Try without "Additional notes" boundary
+    impact=$(echo "$commit_msg_clean" | sed -n '/How does it affect the application:/,$p' | grep -v "How does it affect the application:" | tr -d '\n' | sed 's/(minimum 50 characters)//g' | xargs)
+fi
+impact_len=${#impact}
+if [ $impact_len -lt 50 ]; then
+    echo "❌ 'How does it affect the application' must be at least 50 characters"
+    echo "   Current length: $impact_len characters"
+    echo "   You need: $((50 - impact_len)) more characters"
+    exit 1
+fi
+
+echo "✅ Commit message format validated"
+echo "   Purpose: $purpose_len characters ✓"
+echo "   Impact: $impact_len characters ✓"
+exit 0
