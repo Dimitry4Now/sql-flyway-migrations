@@ -65,7 +65,7 @@ This project uses a custom schema named **`dime`** instead of the default `publi
 
 ### Prerequisites
 - Docker & Docker Compose
-- Java 25 (or compatible JDK)
+- Java 21 (or compatible JDK)
 - Kotlin 2.2.21
 
 ## Development Workflow
