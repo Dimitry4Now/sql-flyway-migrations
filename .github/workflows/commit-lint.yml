@@ -20,10 +20,23 @@ jobs:
           # Get all commits in this PR
           commits=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%H")
           
+          # Date when commit format was enforced (change this to your date)
+          ENFORCEMENT_DATE="2025-11-21"
+          
           failed=false
           
           for commit in $commits; do
-            echo "Checking commit: $commit"
+            commit_date=$(git log -1 --pretty=format:"%ci" $commit | cut -d' ' -f1)
+            
+            echo "Checking commit: $commit (Date: $commit_date)"
+            
+            # Skip commits before enforcement date
+            if [[ "$commit_date" < "$ENFORCEMENT_DATE" ]]; then
+              echo "⏭️  Skipping old commit (before $ENFORCEMENT_DATE)"
+              echo "---"
+              continue
+            fi
+            
             msg=$(git log -1 --pretty=format:"%B" $commit)
             
             # Check for required sections
