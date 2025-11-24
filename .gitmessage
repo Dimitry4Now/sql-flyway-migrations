@@ -1,16 +1,26 @@
-# Subject line (50 characters max)
-# |<----  Using a Maximum Of 50 Characters  ---->|
+# Subject (max 50 characters)
 
 
-Files changed:
-* 
-* 
-
-Purpose of the change: (minimum 50 characters)
+# Files changed:
+# (This will be auto-populated by the prepare-commit-msg hook)
 
 
-How does it affect the application: (minimum 50 characters)
+# Purpose of the change: (minimum 50 characters)
+# Why was this change necessary?
 
 
-Additional notes:
+# How does it affect the application: (minimum 50 characters)
+# What impact does this have on functionality, performance, or behavior?
 
+
+# Additional notes: (optional)
+
+
+# ────────────────────────────────────────────────────────────────
+# Commit message guidelines:
+#   - First line: Brief summary (50 chars max)
+#   - Files changed: Auto-populated by git hook ✨
+#   - Purpose: Explain WHY (50+ chars minimum)
+#   - Impact: Explain the effect (50+ chars minimum)
+#   - Lines starting with '#' will be ignored
+# ────────────────────────────────────────────────────────────────
