@@ -2,7 +2,8 @@
 
 
 # Files changed:
-# (This will be auto-populated by the prepare-commit-msg hook)
+*
+*
 
 
 # Purpose of the change: (minimum 50 characters)
@@ -19,7 +20,7 @@
 # ────────────────────────────────────────────────────────────────
 # Commit message guidelines:
 #   - First line: Brief summary (50 chars max)
-#   - Files changed: Auto-populated by git hook ✨
+#   - Files changed: List of the changed files. Git status before commit.✨
 #   - Purpose: Explain WHY (50+ chars minimum)
 #   - Impact: Explain the effect (50+ chars minimum)
 #   - Lines starting with '#' will be ignored
