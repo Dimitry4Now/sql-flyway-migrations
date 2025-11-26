@@ -1,27 +1,20 @@
 # Subject (max 50 characters)
 
 
-# Files changed:
-*
-*
+Files changed: (optional)
+# Added (enter names below this line)
+
+# Deleted (enter names below this line)
+
+# Modified (enter names below this line)
 
 
-# Purpose of the change: (minimum 50 characters)
-# Why was this change necessary?
+Purpose of the change: (minimum 50 characters)
+# Why was this change necessary? Answer below this line.
 
 
-# How does it affect the application: (minimum 50 characters)
-# What impact does this have on functionality, performance, or behavior?
+How does it affect the application: (minimum 50 characters)
+# What impact does this have? Answer below this line.
 
 
 # Additional notes: (optional)
-
-
-# ────────────────────────────────────────────────────────────────
-# Commit message guidelines:
-#   - First line: Brief summary (50 chars max)
-#   - Files changed: List of the changed files. Git status before commit.✨
-#   - Purpose: Explain WHY (50+ chars minimum)
-#   - Impact: Explain the effect (50+ chars minimum)
-#   - Lines starting with '#' will be ignored
-# ────────────────────────────────────────────────────────────────

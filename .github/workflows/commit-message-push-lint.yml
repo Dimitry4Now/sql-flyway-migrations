@@ -1,17 +1,18 @@
-name: Commit Message Lint
-
+name: commit-message-push-lint.yml
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches-ignore:
+      - main
+      - develop
 
 jobs:
-  commit-lint:
+  commit-message-push-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: '0'
 
       - name: Validate commit messages
         run: |
@@ -43,7 +44,7 @@ jobs:
             else
             echo "⚠️  'Files changed:' section missing but optional, skipping"
             fi
-          
+  
             if ! echo "$msg" | grep -iq "Purpose of the change"; then
               echo "❌ Missing 'Purpose of the change' section"
               failed=true
@@ -106,3 +107,4 @@ jobs:
           fi
           
           echo "✅ All commits validated successfully!"
+
