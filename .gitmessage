@@ -1,16 +1,20 @@
-# Subject line (50 characters max)
-# |<----  Using a Maximum Of 50 Characters  ---->|
+# Subject (max 50 characters)
 
 
-Files changed:
-* 
-* 
+Files changed: (optional)
+# Added (enter names below this line)
+
+# Deleted (enter names below this line)
+
+# Modified (enter names below this line)
+
 
 Purpose of the change: (minimum 50 characters)
+# Why was this change necessary? Answer below this line.
 
 
 How does it affect the application: (minimum 50 characters)
+# What impact does this have? Answer below this line.
 
 
-Additional notes:
-
+# Additional notes: (optional)
