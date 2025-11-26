@@ -18,7 +18,7 @@ jobs:
         run: |
           #!/bin/bash
           
-          commits=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%H")
+          commits=$(git log origin/${{ github.sha }}..${{ github.sha }} --pretty=format:"%H")
           
           failed=false
           
