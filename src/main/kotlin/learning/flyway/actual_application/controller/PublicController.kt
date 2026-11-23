@@ -1,11 +1,13 @@
 package learning.flyway.actual_application.controller
 
+import org.springframework.http.HttpStatus
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 
 @RestController
 @RequestMapping("/api/public/v1")
@@ -22,16 +24,23 @@ class PublicController(
         @PathVariable nameOfTableOrView: String,
         @RequestParam(defaultValue = DEFAULT_SCHEMA) schema: String
     ): List<Map<String, Any?>> {
-        // Validate table/view and schema names to prevent SQL injection
+        // The names go into the SQL, so they must be plain identifiers.
         if (!isValidIdentifier(nameOfTableOrView) || !isValidIdentifier(schema)) {
-            throw IllegalArgumentException("Invalid table/view or schema name")
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid table/view or schema name")
+        }
+        requireOwnSchema(schema)
+        // Only tables and views that exist, so a typo is a 404 rather than an SQL error.
+        val exists = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
+            Int::class.java,
+            schema,
+            nameOfTableOrView
+        ) ?: 0
+        if (exists == 0) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "No table or view $schema.$nameOfTableOrView")
         }
 
-        return try {
-            jdbcTemplate.queryForList("SELECT * FROM $schema.$nameOfTableOrView")
-        } catch (e: Exception) {
-            throw RuntimeException("Error fetching data from $schema.$nameOfTableOrView: ${e.message}", e)
-        }
+        return jdbcTemplate.queryForList("SELECT * FROM $schema.$nameOfTableOrView")
     }
 
     @GetMapping("/tables")
@@ -39,8 +48,9 @@ class PublicController(
         @RequestParam(defaultValue = DEFAULT_SCHEMA) schema: String
     ): Map<String, Any> {
         if (!isValidIdentifier(schema)) {
-            throw IllegalArgumentException("Invalid schema name")
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid schema name")
         }
+        requireOwnSchema(schema)
 
         val tables = jdbcTemplate.queryForList(
             """
@@ -78,7 +88,7 @@ class PublicController(
             """
             SELECT schema_name 
             FROM information_schema.schemata 
-            WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+            WHERE schema_name <> 'information_schema' AND schema_name NOT LIKE 'pg\_%'
             ORDER BY schema_name
             """,
             String::class.java
@@ -92,5 +102,16 @@ class PublicController(
     private fun isValidIdentifier(name: String): Boolean {
         // Allow alphanumeric, underscore only (removed hyphen for schema safety)
         return name.matches(Regex("^[a-zA-Z0-9_]+$"))
+    }
+
+    /**
+     * PostgreSQL's own catalogs are off limits: the database user in Docker is
+     * a superuser, so pg_catalog.pg_authid, for one, holds password hashes.
+     */
+    private fun requireOwnSchema(schema: String) {
+        val lower = schema.lowercase()
+        if (lower == "information_schema" || lower.startsWith("pg_")) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "System schemas are not shown")
+        }
     }
 }
