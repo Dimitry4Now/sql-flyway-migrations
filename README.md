@@ -1,380 +1,57 @@
-# Flyway Migrations Learning Project (Improved Documentation)
+# Flyway migrations, learned by doing
 
-A clean, structured, and beginner-friendly guide for learning **Flyway
-database migrations** using **Spring Boot**, **Kotlin**, and
-**PostgreSQL**.\
-This project emphasizes migration discipline, schema organization, and a
-smooth local development workflow using Docker.
+A small Spring Boot and Kotlin app I built to learn Flyway: how versioned and repeatable migrations work, how a schema grows one script at a time, and what happens when you change a script that has already run. The database is PostgreSQL in Docker, and a tiny API lets you look at what the migrations created.
 
-------------------------------------------------------------------------
+## How the migrations are organised
 
-## 🚀 Overview
+Everything lives in its own schema, `dime`, and every script names it (`dime.users`, not `users`).
 
-This learning project demonstrates how to:
+- **Versioned** (`db/migration/versioned/V1__init_schema.sql` and on) run once each, in order: tables, constraints, seed data. Once one has run, it's never edited again; a change is a new script with the next number. The next one here would be `V7__...`.
+- **Repeatable** (`db/migration/repeatable/R__refresh_user_stats_view.sql`) run again whenever the file changes, which suits views and functions.
+- **Undo** (`db/migration/undo/U3__undo_comments_table.sql`) is kept as an example only. Undo migrations need Flyway's paid Teams edition, so the free one would skip it, and the app doesn't scan that folder. Rolling back by hand is described below.
 
--   Use **versioned**, **repeatable**, and **undo** Flyway migrations\
--   Organize migrations in a clean folder structure\
--   Develop inside isolated containers or local mode\
--   Work with a **custom schema** (`dime`)\
--   Query database metadata through a simple API\
--   Enforce **strict commit message rules** and PR workflow\
--   Start/stop the DB or full stack using Gradle tasks
+Flyway records what it ran in `public.flyway_schema_history`.
 
-------------------------------------------------------------------------
+## Running it
 
-## 📁 Project Structure
+You need Docker and Java 21. Gradle and Kotlin come with the project (`gradlew`; on Windows use `gradlew.bat`).
 
-    .
-    ├── docker/
-    │   ├── Dockerfile
-    │   ├── docker-compose.db.yml
-    │   └── docker-compose.dev.yml
-    ├── src/
-    │   ├── main/
-    │   │   ├── kotlin/
-    │   │   │   └── learning/flyway/actual_application/controller/
-    │   │   │       └── PublicController.kt
-    │   │   └── resources/
-    │   │       ├── application.properties
-    │   │       └── db/
-    │   │           ├── migration/
-    │   │           │   ├── versioned/
-    │   │           ├── repeatable/
-    │   │           └── undo/
-    ├── build.gradle.kts
-    └── README.md
+The usual way is to run only the database in Docker and the app from your machine:
 
-------------------------------------------------------------------------
-
-## 🧭 Flyway Migration Types
-
-### ✅ **Versioned Migrations** (`V{version}__description.sql`)
-
-Location: `db/migration/versioned/`\
-Run **exactly once**, in order.
-
-Use for: - Creating/altering tables - Adding constraints/indexes -
-Inserting reference data
-
-Example:
-
-``` sql
-CREATE TABLE dime.users (...);
+```bash
+./gradlew dbUp        # PostgreSQL on localhost:5432
+./gradlew bootRun     # the app on localhost:8080; migrations run on start
+./gradlew dbShell     # psql, if you want to look around
+./gradlew dbDown      # stop it, keeping the data
+./gradlew dbDestroy   # stop it and delete the data, for a fresh start
 ```
 
-------------------------------------------------------------------------
+Or run both in Docker with `./gradlew devUp` (`devDown`, `devDestroy` to stop). The database is then on port 5433. Either way it's `flyway_db`, user `flyway_user`, password `flyway_pass`.
 
-### ♻️ **Repeatable Migrations** (`R__description.sql`)
+## Looking at the result
 
-Location: `db/migration/repeatable/`\
-Executed whenever file checksum changes.
-
-Use for: - Views - Functions - Stored procedures
-
-Example:
-
-``` sql
-CREATE OR REPLACE VIEW dime.user_stats AS ...
+```
+GET /api/public/v1/schemas           the app's schemas
+GET /api/public/v1/tables            tables and views in dime (?schema= for another)
+GET /api/public/v1/show/user_stats   the rows of a table or view
 ```
 
-------------------------------------------------------------------------
+PostgreSQL's own schemas (`pg_catalog`, `information_schema`) are off limits: the Docker user is a superuser, and those hold things like password hashes.
 
-### ↩️ **Undo Migrations** (`U{version}__description.sql`)
+## Things to try
 
-Location: `db/migration/undo/`\
-Available only in Flyway Teams but usable manually in learning mode.
+- **Start over:** `./gradlew dbDestroy dbUp`, then `bootRun`, and watch every migration run in the log.
+- **Add a table:** create `V7__add_tags_table.sql`, restart the app, and it runs once.
+- **Change a view:** edit the repeatable script and restart; it runs again because its checksum changed.
+- **Break a checksum:** edit a versioned script that already ran and restart; Flyway refuses to start. The right fix is a new script. While learning, you can also delete its row from `public.flyway_schema_history`.
+- **Roll back by hand:** in `dbShell`, `DROP TABLE dime.comments CASCADE;` then `DELETE FROM public.flyway_schema_history WHERE version = '3';`, and the next start runs V3 again.
 
-Use for: - Experimenting with reversible migrations - Learning rollback
-strategies
+Useful in psql: `\dn` lists schemas, `\dt dime.*` the tables, and `SELECT * FROM public.flyway_schema_history;` what Flyway has done.
 
-------------------------------------------------------------------------
+## Tests
 
-## 🗃️ Custom Database Schema
+`./gradlew test` starts its own PostgreSQL with Testcontainers (Docker has to be running, nothing else), applies every migration to it and checks the API. GitHub runs the same on every pull request.
 
-All objects use the schema:
+## Working on it
 
-    dime
-
-Example:
-
-``` sql
-CREATE TABLE dime.posts (...);
-```
-
-------------------------------------------------------------------------
-
-## 🛠️ Development Setup
-
-### 📌 Requirements
-
--   Docker & Docker Compose\
--   Java **21+**\
--   Kotlin **2.2+**
-
-------------------------------------------------------------------------
-
-## 🔧 Initial Setup
-
-Enable commit message template:
-
-``` bash
-git config commit.template .gitmessage
-```
-
-------------------------------------------------------------------------
-
-## 📝 Commit Message Format
-
-Your commit must include:
-
-    Subject line (max 50 chars)
-
-    Files changed:(optional)
-    * file1
-    * file2
-
-    Purpose of the change: (≥50 chars)
-    Explain WHY.
-
-    How does it affect the application: (≥50 chars)
-    Explain WHAT changes.
-    
-    Additional note:(optional)
-
-PRs require: - Correct commit format\
-- Targeting `develop`\
-- CI validation success
-
-------------------------------------------------------------------------
-
-## 🌿 Branch Strategy
-
-Branch        Purpose
-  ------------- --------------------
-`main`        Production-ready
-`develop`     Integration branch
-`feature/*`   Work branches
-
-------------------------------------------------------------------------
-> Replace ./gradlew with .\gradlew.bat for Windows
-
-## 🐳 Running the Project
-
-### Option 1 --- **Database Only (Learning Mode)**
-
-Start PostgreSQL:
-
-``` bash
-./gradlew dbUp
-```
-
-Run the app locally:
-
-``` bash
-./gradlew bootRun
-```
-
-Stop DB:
-
-``` bash
-./gradlew dbDown
-```
-
-Destroy DB (delete data):
-
-``` bash
-./gradlew dbDestroy
-```
-
-Open psql:
-
-``` bash
-./gradlew dbShell
-```
-
-------------------------------------------------------------------------
-
-### Option 2 --- **Full Stack (Spring Boot + DB in Docker)**
-
-Start everything:
-
-``` bash
-./gradlew devUp
-```
-
-Stop:
-
-``` bash
-./gradlew devDown
-```
-
-Destroy:
-
-``` bash
-./gradlew devDestroy
-```
-
-------------------------------------------------------------------------
-
-## 🌐 API Documentation
-
-### List schemas:
-
-    GET /api/public/v1/schemas
-
-### List tables (default schema = dime):
-
-    GET /api/public/v1/tables
-
-### Show table or view:
-
-    GET /api/public/v1/show/{name}
-
-Example:
-
-    GET /api/public/v1/show/user_stats
-
-------------------------------------------------------------------------
-
-## 🧪 Learning Scenarios
-
-### 1️⃣ Fresh Start
-
-``` bash
-./gradlew dbDestroy
-./gradlew dbUp
-./gradlew bootRun
-```
-
-### 2️⃣ Add a new migration
-
-Create `V5__add_tags_table.sql` then restart the app.
-
-### 3️⃣ Test repeatable migrations
-
-Modify a `R__*.sql` file → checksum change → auto re-run.
-
-### 4️⃣ Manual rollback
-
-In psql:
-
-``` sql
-DROP TABLE dime.comments CASCADE;
-DELETE FROM flyway_schema_history WHERE version='3';
-```
-
-### 5️⃣ Compare schemas
-
-``` bash
-curl /api/public/v1/tables?schema=dime
-curl /api/public/v1/tables?schema=public
-```
-
-------------------------------------------------------------------------
-
-## 🐘 Database Connection
-
-### Local Mode
-
-    jdbc:postgresql://localhost:5432/flyway_db?currentSchema=dime
-
-### Full Stack Mode
-
-    jdbc:postgresql://localhost:5433/flyway_db?currentSchema=dime
-
-Credentials: - User: `flyway_user` - Pass: `flyway_pass`
-
-------------------------------------------------------------------------
-
-## 🔍 Migration Tips
-
--   Always include schema names (`dime.table`)\
--   Never modify existing versioned migrations---create new ones\
--   Use repeatables for views\
--   Watch Flyway logs for details\
--   Reset DB often while learning\
--   Foreign keys MUST include schema name\
--   Keep migrations atomic and readable
-
-------------------------------------------------------------------------
-
-## 🧰 Useful psql Commands
-
-``` sql
-\dn                 -- list schemas
-\dt dime.*          -- list tables
-SET search_path TO dime;
-SELECT * FROM flyway_schema_history;
-```
-
-------------------------------------------------------------------------
-
-## 🛠️ Common Patterns
-
-### Create table
-
-``` sql
-CREATE TABLE dime.tags (...);
-```
-
-### Add column
-
-``` sql
-ALTER TABLE dime.users ADD COLUMN bio TEXT;
-```
-
-### Create view
-
-``` sql
-CREATE OR REPLACE VIEW dime.post_summary AS ...
-```
-
-------------------------------------------------------------------------
-
-## 🧹 Troubleshooting
-
-### Port Already Used
-
-``` bash
-lsof -ti:5432 | xargs kill -9
-```
-
-### Checksum Mismatch
-
-Recommended: - Create a new migration fixing the old one
-
-Dev only:
-
-``` sql
-DELETE FROM flyway_schema_history WHERE version='X';
-```
-
-### Reset Everything
-
-``` bash
-./gradlew dbDestroy
-./gradlew clean
-./gradlew dbUp
-```
-
-------------------------------------------------------------------------
-
-## 📚 Recommended Learning Path
-
-### Week 1 -- Basics
-
--   Create schema + tables\
--   Insert sample data\
--   Validate Flyway history\
--   Query API
-
-### Week 2 -- Evolution
-
--   Add new tables (V3, V4...)\
--   Add repeatable views\
--   Use full-stack mode\
--   Test rollbacks
-
-------------------------------------------------------------------------
-
-Enjoy experimenting with Flyway and contributing! Happy coding!
+Work goes on `feature/*` branches into `develop`, and `main` holds what is stable. Commit messages follow `.gitmessage` (`git config commit.template .gitmessage`): a subject of at most 50 characters, then "Purpose of the change" and "How does it affect the application", at least 50 characters each. A check on every pull request makes sure.
