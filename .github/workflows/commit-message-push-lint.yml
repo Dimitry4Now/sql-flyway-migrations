@@ -18,7 +18,15 @@ jobs:
         run: |
           #!/bin/bash
           
-          commits=$(git log origin/${{ github.sha }}..${{ github.sha }} --pretty=format:"%H")
+          # The commits this push added: from the branch's previous tip, or,
+          # for a new branch (no previous tip), everything not yet on develop.
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            range="origin/develop..${{ github.sha }}"
+          else
+            range="$before..${{ github.sha }}"
+          fi
+          commits=$(git log "$range" --pretty=format:"%H")
           
           failed=false
           
